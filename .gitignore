@@ -8,6 +8,7 @@
 !build.sh
 !options.config
 !patches/*/*.patch
+!.github/logo/*.svg
 
 /build/
 /cache/

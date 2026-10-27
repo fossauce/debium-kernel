@@ -1,4 +1,7 @@
-# debium-kernel
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/fossauce/debium-kernel/main/.github/logo/debium-kernel-wordmark-dark.svg">
+  <img alt="debium-kernel" src="https://raw.githubusercontent.com/fossauce/debium-kernel/main/.github/logo/debium-kernel-wordmark.svg" height="56">
+</picture>
 
 Debian's backports kernel for Debian stable, rebuilt with a few changes.
 Not part of Debian.
