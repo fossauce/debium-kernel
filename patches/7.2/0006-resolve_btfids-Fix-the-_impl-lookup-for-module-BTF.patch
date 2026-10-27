@@ -1,0 +1,39 @@
+From 91efe50e3042ffe08eb7f0d77938cf237992241e Mon Sep 17 00:00:00 2001
+From: Ihor Solodrai <ihor.solodrai@linux.dev>
+Date: Wed, 22 Jul 2026 16:35:15 -0700
+Subject: resolve_btfids: Fix the _impl lookup for module BTF
+
+process_kfunc_with_implicit_args() skips generating <name>_impl
+function when one already exists for backwards compatibility.
+
+It uses btf__find_by_name_kind(), which searches the base BTF before
+the split BTF. When resolve_btfids processes a module, a same-named
+_impl in vmlinux would be found and the module's own counterpart would
+not be created.
+
+Fix by using btf__find_by_name_kind_own() for the lookup.
+
+Signed-off-by: Ihor Solodrai <ihor.solodrai@linux.dev>
+Signed-off-by: Andrii Nakryiko <andrii@kernel.org>
+Reviewed-by: Eduard Zingerman <eddyz87@gmail.com>
+Link: https://lore.kernel.org/bpf/20260722233518.778854-6-ihor.solodrai@linux.dev
+---
+ tools/bpf/resolve_btfids/main.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tools/bpf/resolve_btfids/main.c b/tools/bpf/resolve_btfids/main.c
+index de4986e1bc3d17..ab3ab304559219 100644
+--- a/tools/bpf/resolve_btfids/main.c
++++ b/tools/bpf/resolve_btfids/main.c
+@@ -1232,7 +1232,7 @@ static int process_kfunc_with_implicit_args(struct btf2btf_context *ctx, struct
+ 		return -E2BIG;
+ 	}
+ 
+-	if (btf__find_by_name_kind(btf, tmp_name, BTF_KIND_FUNC) > 0) {
++	if (btf__find_by_name_kind_own(btf, tmp_name, BTF_KIND_FUNC) > 0) {
+ 		pr_debug("resolve_btfids: function %s already exists in BTF\n", tmp_name);
+ 		goto add_new_proto;
+ 	}
+-- 
+cgit 1.3.1-korg
+

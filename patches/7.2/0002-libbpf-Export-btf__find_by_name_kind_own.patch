@@ -1,0 +1,63 @@
+From ef242559eb483466a959020af2e404bda77b0015 Mon Sep 17 00:00:00 2001
+From: Ihor Solodrai <ihor.solodrai@linux.dev>
+Date: Wed, 22 Jul 2026 16:35:14 -0700
+Subject: libbpf: Export btf__find_by_name_kind_own()
+
+btf__find_by_name_kind() searches the base BTF before the split BTF,
+so in case of a name collision between base and split it always
+returns a base type. Tools that process split BTF may need to restrict
+a lookup to the split's own types.
+
+The internal helper btf__find_by_name_kind_own() already does exactly
+that. Make it a public API.
+
+Signed-off-by: Ihor Solodrai <ihor.solodrai@linux.dev>
+Signed-off-by: Andrii Nakryiko <andrii@kernel.org>
+Reviewed-by: Eduard Zingerman <eddyz87@gmail.com>
+Link: https://lore.kernel.org/bpf/20260722233518.778854-5-ihor.solodrai@linux.dev
+---
+ tools/lib/bpf/btf.h             | 2 ++
+ tools/lib/bpf/libbpf.map        | 1 +
+ tools/lib/bpf/libbpf_internal.h | 2 --
+ 3 files changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/tools/lib/bpf/btf.h b/tools/lib/bpf/btf.h
+index 1a31f2da947f8a..587172c0de089c 100644
+--- a/tools/lib/bpf/btf.h
++++ b/tools/lib/bpf/btf.h
+@@ -172,6 +172,8 @@ LIBBPF_API __s32 btf__find_by_name(const struct btf *btf,
+ 				   const char *type_name);
+ LIBBPF_API __s32 btf__find_by_name_kind(const struct btf *btf,
+ 					const char *type_name, __u32 kind);
++LIBBPF_API __s32 btf__find_by_name_kind_own(const struct btf *btf,
++					    const char *type_name, __u32 kind);
+ LIBBPF_API __u32 btf__type_cnt(const struct btf *btf);
+ LIBBPF_API const struct btf *btf__base_btf(const struct btf *btf);
+ LIBBPF_API const struct btf_type *btf__type_by_id(const struct btf *btf,
+diff --git a/tools/lib/bpf/libbpf.map b/tools/lib/bpf/libbpf.map
+index b731df19ae6926..08ab2ea881fb65 100644
+--- a/tools/lib/bpf/libbpf.map
++++ b/tools/lib/bpf/libbpf.map
+@@ -460,5 +460,6 @@ LIBBPF_1.8.0 {
+ 	global:
+ 		bpf_program__attach_tracing_multi;
+ 		bpf_program__clone;
++		btf__find_by_name_kind_own;
+ 		btf__new_empty_opts;
+ } LIBBPF_1.7.0;
+diff --git a/tools/lib/bpf/libbpf_internal.h b/tools/lib/bpf/libbpf_internal.h
+index d5b7db703b3fe9..7a74abb904f8bf 100644
+--- a/tools/lib/bpf/libbpf_internal.h
++++ b/tools/lib/bpf/libbpf_internal.h
+@@ -596,8 +596,6 @@ typedef int (*type_id_visit_fn)(__u32 *type_id, void *ctx);
+ typedef int (*str_off_visit_fn)(__u32 *str_off, void *ctx);
+ int btf_ext_visit_type_ids(struct btf_ext *btf_ext, type_id_visit_fn visit, void *ctx);
+ int btf_ext_visit_str_offs(struct btf_ext *btf_ext, str_off_visit_fn visit, void *ctx);
+-__s32 btf__find_by_name_kind_own(const struct btf *btf, const char *type_name,
+-				 __u32 kind);
+ 
+ /* handle direct returned errors */
+ static inline int libbpf_err(int ret)
+-- 
+cgit 1.3.1-korg
+

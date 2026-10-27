@@ -1,0 +1,64 @@
+From 140a3479ef66507a7de06f4cd8bcefb86d2c640a Mon Sep 17 00:00:00 2001
+From: Ihor Solodrai <ihor.solodrai@linux.dev>
+Date: Wed, 22 Jul 2026 16:35:18 -0700
+Subject: resolve_btfids: Enforce consistent kfunc flags across BTF ID sets
+
+A kfunc may be listed in several BTF ID sets, which is expected
+because different kfuncs are available to BPF programs depending on
+their type.
+
+However kfunc flags across different BTF ID sets must be consistent [1].
+The flags should be considered a part of the kfunc declaration,
+because they influence its BTF representation and verifier handling.
+
+Enforce the kfunc flag consistency in resolve_btifds by hard failing
+on error and blocking kernel (or module) build.
+
+[1] https://lore.kernel.org/bpf/9b2196dd-443b-4632-ae11-030cdbdc59b4@linux.dev/
+
+Signed-off-by: Ihor Solodrai <ihor.solodrai@linux.dev>
+Signed-off-by: Andrii Nakryiko <andrii@kernel.org>
+Reviewed-by: Eduard Zingerman <eddyz87@gmail.com>
+Link: https://lore.kernel.org/bpf/20260722233518.778854-9-ihor.solodrai@linux.dev
+---
+ tools/bpf/resolve_btfids/main.c | 17 +++++++++++++----
+ 1 file changed, 13 insertions(+), 4 deletions(-)
+
+diff --git a/tools/bpf/resolve_btfids/main.c b/tools/bpf/resolve_btfids/main.c
+index 338d0c0a8e58ec..85488935909dd1 100644
+--- a/tools/bpf/resolve_btfids/main.c
++++ b/tools/bpf/resolve_btfids/main.c
+@@ -982,17 +982,26 @@ static int push_kfunc(struct btf2btf_context *ctx, struct kfunc *kfunc)
+ 	struct rb_node *parent = NULL;
+ 	struct kfunc *k;
+ 
+-	/* Dedup by BTF ID: collecting the same kfunc twice is a no-op. */
++	/*
++	 * Dedup by BTF ID: collecting the same kfunc twice is a no-op,
++	 * UNLESS the kfunc flags are inconsistent, in which case we
++	 * fail hard because it indicates a bug in a kfunc set declaration.
++	 */
+ 	while (*p) {
+ 		parent = *p;
+ 		k = rb_entry(parent, struct kfunc, rb_node);
+ 
+-		if (kfunc->btf_id < k->btf_id)
++		if (kfunc->btf_id < k->btf_id) {
+ 			p = &(*p)->rb_left;
+-		else if (kfunc->btf_id > k->btf_id)
++		} else if (kfunc->btf_id > k->btf_id) {
+ 			p = &(*p)->rb_right;
+-		else
++		} else if (k->flags == kfunc->flags) {
+ 			return 0;
++		} else {
++			pr_err("ERROR: resolve_btfids: kfunc %s has inconsistent flags across BTF ID sets: 0x%x != 0x%x\n",
++			       kfunc->name, k->flags, kfunc->flags);
++			return -EINVAL;
++		}
+ 	}
+ 
+ 	k = zalloc(sizeof(*k));
+-- 
+cgit 1.3.1-korg
+
