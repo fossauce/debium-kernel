@@ -1,0 +1,14 @@
+# Ignore everything; allow only the files listed.
+*
+!*/
+
+!.gitignore
+!*.md
+!LICENSE
+!build.sh
+!options.config
+!patches/*/*.patch
+
+/build/
+/cache/
+/output/
