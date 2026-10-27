@@ -1,10 +1,19 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/fossauce/debium-kernel/main/.github/logo/debium-kernel-wordmark-dark.svg">
-  <img alt="debium-kernel" src="https://raw.githubusercontent.com/fossauce/debium-kernel/main/.github/logo/debium-kernel-wordmark.svg" height="56">
-</picture>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/fossauce/debium-kernel/main/.github/logo/debium-kernel-wordmark-dark.svg">
+    <img alt="debium-kernel" src="https://raw.githubusercontent.com/fossauce/debium-kernel/main/.github/logo/debium-kernel-wordmark.svg" height="56">
+  </picture>
+</p>
 
-Debian's backports kernel for Debian stable, rebuilt with a few changes.
-Not part of Debian.
+<p align="center">
+  Debian's backports kernel for Debian stable, rebuilt with a few changes.<br>
+  Not part of Debian.
+</p>
+
+<p align="center">
+  <a href="https://github.com/fossauce/debium-kernel/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/fossauce/debium-kernel"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/fossauce/debium-kernel"></a>
+</p>
 
 ## Changes
 
