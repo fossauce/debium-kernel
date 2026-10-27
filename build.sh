@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Builds Debian's newest backports kernel with options.config and the
-# patches in patches/<series>/, as Debian packages in output/.
+# Builds Debian's backports kernel with options.config and patches/<series>/.
 set -euo pipefail
 trap 'printf "error: line %s: %s\n" "$LINENO" "$BASH_COMMAND" >&2' ERR
 
@@ -43,10 +42,10 @@ parse_args() {
         shift
     done
     [[ $REVISION =~ ^[1-9][0-9]*$ ]] || die "revision must be a positive integer"
-    [ "$(id -u)" != 0 ] || die "run as a normal user; sudo is used only for apt"
+    [ "$(id -u)" != 0 ] || die "run as a normal user"
 }
 
-# Missing build packages are installed with sudo; apt asks before installing.
+# Installs missing build packages with sudo apt-get.
 install_packages() {
     local p missing=()
     for p in $BUILD_PACKAGES; do
@@ -57,7 +56,7 @@ install_packages() {
     sudo apt-get install --no-install-recommends "${missing[@]}" || die "build packages not installed"
 }
 
-# version_in <package> <suite>: the package's version in that suite.
+# version_in <package> <suite>
 version_in() {
     apt-cache madison "$1" \
         | awk -F'|' -v s=" $2/" 'index($3, s) && !n++ { gsub(/ /, "", $2); print $2 }'
@@ -72,7 +71,7 @@ resolve() {
             | while read -r p; do [ -z "$(version_in "$p" "$SUITE")" ] || echo "${p#linux-source-}"; done \
             | sort -V | tail -n 1)"
     fi
-    [ -n "$SERIES" ] || die "no linux-source package in $SUITE; enable $SUITE and run apt update"
+    [ -n "$SERIES" ] || die "no linux-source package in $SUITE"
     DEBIAN_VERSION="$(version_in "linux-source-$SERIES" "$SUITE")"
     [ -n "$DEBIAN_VERSION" ] || die "linux-source-$SERIES is not in $SUITE"
     UPSTREAM="${DEBIAN_VERSION%%-*}"
@@ -82,9 +81,8 @@ resolve() {
     OUT="$ROOT/output/$TAG"
 }
 
-# fetch <package> <version>: path of the cached .deb, checked against apt's
-# SHA-256. Downloads go to a temporary folder first, so an interrupted one is
-# never cached.
+# fetch <package> <version>: cached .deb path, checked against apt's SHA-256.
+# Downloads finish in a temporary folder first.
 fetch() {
     local uri file size sum tmp
     read -r uri file size sum < <(apt-get download --print-uris "$1=$2" | awk 'NR == 1')
@@ -135,7 +133,7 @@ prepare() {
     verify_config
 }
 
-# Every option line must be in the final .config.
+# Checks each options.config line in the final .config.
 verify_config() {
     local line sym failed=0
     while IFS= read -r line; do
@@ -153,13 +151,13 @@ verify_config() {
     done <"$OPTIONS"
     [ "$failed" = 0 ] || die "options.config did not survive olddefconfig"
     diff "$BUILD/debian.config" "$SRC/.config" | grep -E '^[<>] (# )?CONFIG' >"$BUILD/config.diff" || true
-    log ".config verified; changes from Debian in ${BUILD#"$ROOT"/}/config.diff"
+    log ".config verified, diff in ${BUILD#"$ROOT"/}/config.diff"
 }
 
 compile() {
     local jobs
     jobs="$(nproc)"
-    log "building $KERNELRELEASE $VERSION, $jobs jobs, log in ${LOG#"$ROOT"/}"
+    log "building $KERNELRELEASE $VERSION, $jobs jobs"
     if ! (cd "$SRC" && DEB_BUILD_PROFILES=pkg.linux-upstream.nokerneldbg \
             DEBFULLNAME="$MAINTAINER_NAME" DEBEMAIL="$MAINTAINER_EMAIL" \
             KBUILD_BUILD_USER="$NAME" KBUILD_BUILD_HOST="$NAME" \
@@ -176,12 +174,12 @@ collect() {
     for f in "$BUILD"/*.deb; do
         pkg="$(dpkg-deb -f "$f" Package)" arch="$(dpkg-deb -f "$f" Architecture)"
         case $pkg in
-            # linux-libc-dev would replace Debian's.
+            # linux-libc-dev replaces Debian's.
             linux-libc-dev | *-dbg) rm -f -- "$f"; continue ;;
         esac
         [ "$(dpkg-deb -f "$f" Version)" = "$VERSION" ] || die "$pkg has version $(dpkg-deb -f "$f" Version)"
         ! dpkg-deb -c "$f" | grep -q 'signing_key\.pem' || die "$pkg contains the module signing key"
-        # No version in the name: GitHub renames assets with '~'.
+        # No version in the name: GitHub renames '~'.
         mv -- "$f" "$OUT/${pkg}_$arch.deb"
     done
     cat >"$OUT/build-info.txt" <<EOF
