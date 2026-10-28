@@ -4,8 +4,8 @@ set -euo pipefail
 trap 'printf "error: line %s: %s\n" "$LINENO" "$BASH_COMMAND" >&2' ERR
 
 NAME=debium
-MAINTAINER_NAME=debium
-MAINTAINER_EMAIL=hmwassim95@gmail.com
+MAINTAINER_NAME=FOSSauce
+MAINTAINER_EMAIL=fossauce@tuta.io
 BUILD_PACKAGES="bc bindgen bison build-essential cpio debhelper dpkg-dev dwarves fakeroot flex \
 kmod libdw-dev libelf-dev libssl-dev patch python3 rsync rust-src rustc rustfmt xz-utils zstd"
 
